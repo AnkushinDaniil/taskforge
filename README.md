@@ -94,18 +94,74 @@ Outputs to `bin\`:
 
 ## Testing
 
-```cmd
-test.bat
+Two layers, by where they run:
+
+| Layer | Runs in | Cost | Catches |
+| --- | --- | --- | --- |
+| **Lint** (`.github/workflows/ci.yml`) | GitHub Actions, free Linux runners | $0, auto on push/PR | structural drift, SQL parse errors, PowerShell parse errors, malformed `.dproj`, `.pas`/file-name mismatches, no SQL string-concat, no absolute local paths |
+| **Build + Unit + Integration + E2E** (`test.bat`) | Local Windows machine or VM with Delphi 12 CE installed | $0 (CE is free for individuals + small orgs) | actual Delphi compile errors, runtime correctness across the worker / API / IPC stack |
+
+### Running the full suite locally (macOS host)
+
+The Delphi compiler (`dcc64`) and FireDAC/Indy/VCL libraries are
+Windows-only. To run the full suite on a Mac you need a Windows VM —
+this is genuinely free, takes ~2 hours of setup once, and runs
+indefinitely.
+
+#### Apple Silicon (M1 / M2 / M3 / M4) — UTM + Windows 11 ARM
+
+```bash
+brew install --cask utm
 ```
 
-Runs:
+1. In UTM: **Create a new Virtual Machine → Virtualize → Windows**.
+   UTM offers to download the official Windows 11 ARM installer.
+2. After Windows is up, install **Delphi 12 Community Edition** —
+   register at https://www.embarcadero.com/products/delphi/starter
+   (free per-developer licence, annual renewal still free). x64
+   `dcc64.exe` runs under Microsoft's built-in x64-on-ARM emulation.
+3. In UTM: **Settings → Sharing → Directory Share** → point to the
+   `taskforge/` folder on your Mac. Inside Windows it appears at
+   `\\Mac\Home\…` or via the mounted SPICE drive.
 
-1. **Build** (`build.bat`)
-2. **Unit + Integration** — `bin\TaskForge.Tests.exe` (DUnitX). Filter
-   layers with `-include:Tests.Unit.*` or `-include:Tests.Integration.*`.
-3. **E2E** — `tests\e2e\run_e2e.ps1` spawns the actual Worker + API
-   binaries on a temporary database and ephemeral port, then drives them
-   via HTTP and SSE.
+#### Intel Mac — VirtualBox + Windows 11
+
+```bash
+brew install --cask virtualbox
+```
+
+1. Download Windows 11 ISO from microsoft.com.
+2. Create a Windows 11 VM in VirtualBox (8 GB RAM, 60 GB disk
+   recommended). Run unactivated indefinitely — the only cosmetic
+   limitations are a watermark and a locked wallpaper.
+3. Install Delphi 12 Community Edition (same link as above).
+4. Use **Devices → Shared Folders** to expose `taskforge/` to the VM.
+
+#### Inside the Windows VM, once Delphi is installed
+
+Open a `cmd.exe` shell in the repo directory:
+
+```cmd
+build.bat                                         REM compile all 4 EXEs
+test.bat                                          REM build → unit → integration → e2e
+```
+
+Or run a single layer when isolating a failure:
+
+```cmd
+bin\TaskForge.Tests.exe -include:Tests.Unit.*        -exit:Continue
+bin\TaskForge.Tests.exe -include:Tests.Integration.* -exit:Continue
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\e2e\run_e2e.ps1 -Bin .\bin
+powershell -File tests\e2e\scenarios\03_overdue_sse_stream.ps1 -Bin .\bin
+```
+
+### What CI does *not* catch
+
+The lint workflow is fast and zero-cost but cannot prove that Pascal
+code compiles. Any change that touches `.pas`, `.dpr`, `.dproj`, or the
+`migrations.rc` resource scripts must be verified locally on the
+Windows VM before merging. Lint is a regression net for the
+non-Pascal parts; it is not a green light to ship.
 
 ---
 
