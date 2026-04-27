@@ -1,0 +1,29 @@
+# Output
+bin/
+*.exe
+*.dcu
+*.res
+*.identcache
+*.local
+*.tvsconfig
+*.dsk
+__history/
+__recovery/
+
+# IDE
+*.~*
+*.stat
+
+# DB
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OMC
+.omc/state/
+.omc/logs/
+.omc/research/

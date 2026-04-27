@@ -1,0 +1,155 @@
+# TaskForge
+
+A local task tracker built as four Delphi binaries from a single repository:
+
+| Binary | Purpose |
+| --- | --- |
+| `TaskForge.Worker.exe` | Background worker — scans overdue tasks, publishes events |
+| `TaskForge.Api.exe` | Indy-based REST API + SSE event stream |
+| `TaskForge.Admin.exe` | VCL admin client (master-detail, dark-mode) |
+| `TaskForge.Tests.exe` | DUnitX runner — unit + integration tests |
+
+E2E tests (`tests/e2e/`) drive the real binaries from PowerShell.
+
+---
+
+## Repository layout
+
+```
+src/
+  Core/    shared library (compiled into each exe)
+  Worker/  background worker
+  Api/     REST + SSE
+  Admin/   VCL client
+  Tests/   DUnitX project
+migrations/  SQL files embedded as resources
+tests/e2e/   PowerShell E2E orchestrator + scenarios
+build.bat    invokes dcc64 directly
+test.bat     build → unit/integration → e2e
+```
+
+---
+
+## Required RAD Studio components
+
+- **Delphi 11.3 (Alexandria) or Delphi 12 (Athens)**, **Pro edition or
+  higher**. Pro ships with FireDAC, Indy, VCL Styles, and DUnitX —
+  everything we use.
+- **Community Edition** can compile this code in the IDE for non-
+  commercial use, but it does not grant rights to distribute the
+  resulting binaries. Building from the command-line with `dcc64` works
+  on Community in our testing, but read the licence yourself.
+- **No third-party libraries are required.** The plan originally called
+  for `TVirtualStringTree`; we shipped with the built-in `TListView` to
+  keep the build self-contained. Swap to VirtualTreeView via GetIt if
+  you want virtualisation past ~10k rows.
+
+### Files needed from a RAD Studio install
+
+The `build.bat` shells out to `dcc64.exe` and depends on:
+
+- `bin\rsvars.bat` (sets `BDS`, `PATH`, library search paths)
+- `bin\dcc64.exe` (the 64-bit command-line compiler)
+- `lib\Win64\release\*.dcu` for `System.*`, `Vcl.*`, `Winapi.*`,
+  `Data.*`, `Data.Win.*`, `FireDAC.*`, `IdGlobal.*`, `IdHTTPServer.*`,
+  `DUnitX.*`
+- `bin\rc.exe` (or any Windows SDK `rc.exe` on PATH) for compiling
+  `migrations.rc → migrations.res`
+
+The build script auto-locates RAD Studio 11 (`Studio\22.0`) or 12
+(`Studio\23.0`). Override by setting `BDS` before invoking it.
+
+---
+
+## What is impossible without a paid Delphi licence
+
+Be explicit:
+
+- `dcc64.exe` and the FireDAC/Indy/VCL `.dcu` libraries are **not
+  redistributable**. There is no FOSS replacement that produces
+  byte-equivalent binaries from this source.
+- The Admin client uses VCL — VCL is **Windows-only** and bundled with
+  RAD Studio. There is no cross-platform compile path for it.
+- macOS and Linux developers can read and edit the source, but
+  **cannot build the binaries** without a Windows host with RAD Studio
+  installed.
+
+---
+
+## Building
+
+From a `cmd.exe` shell on Windows:
+
+```cmd
+build.bat
+```
+
+Outputs to `bin\`:
+- `TaskForge.Worker.exe`
+- `TaskForge.Api.exe`
+- `TaskForge.Admin.exe`
+- `TaskForge.Tests.exe`
+
+---
+
+## Testing
+
+```cmd
+test.bat
+```
+
+Runs:
+
+1. **Build** (`build.bat`)
+2. **Unit + Integration** — `bin\TaskForge.Tests.exe` (DUnitX). Filter
+   layers with `-include:Tests.Unit.*` or `-include:Tests.Integration.*`.
+3. **E2E** — `tests\e2e\run_e2e.ps1` spawns the actual Worker + API
+   binaries on a temporary database and ephemeral port, then drives them
+   via HTTP and SSE.
+
+---
+
+## Configuration
+
+Each binary reads `config.ini` from its working directory. Every key has
+an environment-variable override (used by E2E for isolation):
+
+| INI                                  | Env var                          |
+| ------------------------------------ | -------------------------------- |
+| `[storage] db_path`                  | `TASKFORGE_DB_PATH`              |
+| `[api] port`                         | `TASKFORGE_API_PORT`             |
+| `[ipc] pipe_name`                    | `TASKFORGE_PIPE_NAME`            |
+| `[worker] scan_interval_sec`         | `TASKFORGE_SCAN_INTERVAL_SEC`    |
+| `[worker] pool_size`                 | `TASKFORGE_POOL_SIZE`            |
+| `[worker] queue_capacity`            | `TASKFORGE_QUEUE_CAPACITY`       |
+
+---
+
+## Known weaknesses
+
+See `Known weaknesses` in the implementation plan
+(`/Users/daniilankusin/.claude/plans/ultraplan-session-creation-failed-starry-feather.md`).
+Honest list of APIs that may have been guessed against memory rather
+than docs:
+
+- Indy SSE streaming via `AContext.Connection.IOHandler` after
+  `AResponseInfo.WriteHeader` — pattern is plausible but Indy versions
+  vary in how aggressively they auto-close. Verify against
+  `IdHTTPServer.pas` before relying on it under load.
+- `TFDScript` accepting multi-statement SQLite scripts split by `;`.
+- `TStyleManager.TrySetStyle('Windows10 Dark')` — exact style name
+  varies between Delphi versions. Inspect `TStyleManager.StyleNames` at
+  runtime if the toggle does nothing.
+- Named-pipe overlapped I/O semantics for graceful drop-on-slow-consumer
+  — current implementation is synchronous and back-pressures the worker
+  via a bounded queue, which is good enough for the local single-machine
+  use case but won't tolerate a wedged API.
+- DUnitX `[Ignore]` attribute syntax — see `Tests.Integration.Sse.pas`.
+- PowerShell delivering a real Ctrl+C to a console child — scenario
+  `05_worker_graceful_shutdown.ps1` uses `taskkill` without `/F`, which
+  delivers `WM_CLOSE`; the Pascal handler treats that as a graceful
+  shutdown signal, but a true `CTRL_C_EVENT` test would need a
+  P/Invoke `GenerateConsoleCtrlEvent` helper.
+
+When something doesn't compile or behave as written, the bug is almost
+certainly in one of the items above — start there.

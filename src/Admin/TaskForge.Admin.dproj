@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{A1B2C3D4-0003-4001-8001-000000000003}</ProjectGuid>
+    <ProjectVersion>20.1</ProjectVersion>
+    <FrameworkType>VCL</FrameworkType>
+    <MainSource>TaskForge.Admin.dpr</MainSource>
+    <Base>True</Base>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <Platform Condition="'$(Platform)'==''">Win64</Platform>
+    <TargetedPlatforms>1</TargetedPlatforms>
+    <AppType>Application</AppType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_DcuOutput>..\..\bin\dcu\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
+    <DCC_UnitSearchPath>..\Core;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+    <DCC_UsePackage>vclx;vclimg;vcl;rtl;$(DCC_UsePackage)</DCC_UsePackage>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="TaskForge.Admin.ViewModels.pas"/>
+    <DCCReference Include="TaskForge.Admin.Mvvm.pas"/>
+    <DCCReference Include="TaskForge.Admin.HttpClient.pas"/>
+    <DCCReference Include="TaskForge.Admin.Theme.pas"/>
+    <DCCReference Include="TaskForge.Admin.Main.pas">
+      <Form>FormMain</Form>
+    </DCCReference>
+    <BuildConfiguration Include="Release">
+      <Key>Cfg_2</Key>
+    </BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>VCLApplication</Borland.ProjectType>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+</Project>

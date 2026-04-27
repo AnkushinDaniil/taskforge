@@ -1,0 +1,2 @@
+MIGRATION_0001 RCDATA "..\\..\\migrations\\0001_init.sql"
+MIGRATION_0002 RCDATA "..\\..\\migrations\\0002_add_version_column.sql"

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{A1B2C3D4-0002-4001-8001-000000000002}</ProjectGuid>
+    <ProjectVersion>20.1</ProjectVersion>
+    <FrameworkType>None</FrameworkType>
+    <MainSource>TaskForge.Api.dpr</MainSource>
+    <Base>True</Base>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <Platform Condition="'$(Platform)'==''">Win64</Platform>
+    <TargetedPlatforms>1</TargetedPlatforms>
+    <AppType>Console</AppType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_DcuOutput>..\..\bin\dcu\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
+    <DCC_UnitSearchPath>..\Core;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_Resource>migrations.rc</DCC_Resource>
+    <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="..\Core\TaskForge.Core.Attributes.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Result.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.EventBus.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Logging.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Config.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Domain.Tasks.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Rtti.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Json.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Repository.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Migrations.pas"/>
+    <DCCReference Include="..\Core\TaskForge.Core.Ipc.NamedPipe.pas"/>
+    <DCCReference Include="TaskForge.Api.Router.pas"/>
+    <DCCReference Include="TaskForge.Api.ETag.pas"/>
+    <DCCReference Include="TaskForge.Api.Sse.pas"/>
+    <DCCReference Include="TaskForge.Api.Controllers.Events.pas"/>
+    <DCCReference Include="TaskForge.Api.Controllers.Tasks.pas"/>
+    <DCCReference Include="TaskForge.Api.Server.pas"/>
+    <BuildConfiguration Include="Release">
+      <Key>Cfg_2</Key>
+    </BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType>VCLApplication</Borland.ProjectType>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+</Project>
