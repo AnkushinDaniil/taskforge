@@ -127,10 +127,9 @@ an environment-variable override (used by E2E for isolation):
 
 ## Known weaknesses
 
-See `Known weaknesses` in the implementation plan
-(`/Users/daniilankusin/.claude/plans/ultraplan-session-creation-failed-starry-feather.md`).
-Honest list of APIs that may have been guessed against memory rather
-than docs:
+See [`docs/PLAN.md`](docs/PLAN.md) for the full architectural plan and a
+detailed weaknesses list. Honest summary of APIs most likely to need
+verification against the official Embarcadero docs before shipping:
 
 - Indy SSE streaming via `AContext.Connection.IOHandler` after
   `AResponseInfo.WriteHeader` — pattern is plausible but Indy versions

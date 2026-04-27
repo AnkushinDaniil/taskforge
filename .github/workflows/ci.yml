@@ -1,0 +1,176 @@
+name: CI (lint)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# This workflow uses no untrusted user-controlled input (no github.event.*
+# strings interpolated into shell). All run: blocks operate on files
+# already in the checked-out repo, which are protected by branch
+# permissions and review.
+
+jobs:
+  structure:
+    name: Structure & file presence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify expected directory layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            build.bat
+            test.bat
+            .gitignore
+            migrations/0001_init.sql
+            migrations/0002_add_version_column.sql
+            src/Core/TaskForge.Core.Result.pas
+            src/Core/TaskForge.Core.Repository.pas
+            src/Core/TaskForge.Core.EventBus.pas
+            src/Worker/TaskForge.Worker.dpr
+            src/Api/TaskForge.Api.dpr
+            src/Admin/TaskForge.Admin.dpr
+            src/Tests/TaskForge.Tests.dpr
+            tests/e2e/run_e2e.ps1
+          )
+          missing=0
+          for f in "${required[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error file=$f::missing required file"
+              missing=$((missing+1))
+            fi
+          done
+          if [[ $missing -gt 0 ]]; then
+            echo "$missing required files missing"
+            exit 1
+          fi
+          echo "All required files present."
+
+      - name: No SQL string-concat in repository code
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE "SQL\.Text\s*:=.*('?\s*\+\s*'|Format\()" src/ -r; then
+            echo "::error::SQL string concatenation detected — use ParamByName"
+            exit 1
+          fi
+          echo "No obvious SQL concatenation."
+
+      - name: No absolute local paths in tracked files
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Scan source-relevant files, excluding the .github directory
+          # whose own lint expressions naturally contain these patterns.
+          if grep -rIn --exclude-dir=.github \
+                       --include='*.md' --include='*.pas' --include='*.dpr' \
+                       --include='*.bat' --include='*.ps1' \
+                       --include='*.psm1' --include='*.ini' --include='*.dproj' \
+                       -e '/Users/' -e '/home/' -e 'C:\\Users\\' .; then
+            echo "::error::Absolute local path detected — keep paths repo-relative"
+            exit 1
+          fi
+          echo "No absolute local paths."
+
+  sql:
+    name: SQL migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations against in-memory SQLite
+        shell: bash
+        run: |
+          set -euo pipefail
+          sqlite3 :memory: < migrations/0001_init.sql
+          { cat migrations/0001_init.sql; echo; cat migrations/0002_add_version_column.sql; } \
+            | sqlite3 :memory:
+          echo "Migrations parse and apply cleanly."
+
+  powershell:
+    name: PowerShell parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse all .ps1 / .psm1 files
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem -Path tests/e2e -Recurse -Include *.ps1, *.psm1 | ForEach-Object {
+            $tokens = $null; $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName, [ref]$tokens, [ref]$errs) | Out-Null
+            if ($errs.Count -gt 0) {
+              foreach ($e in $errs) {
+                Write-Output "::error file=$($_.FullName),line=$($e.Extent.StartLineNumber)::$($e.Message)"
+                $errors += "$($_.Name): $($e.Message)"
+              }
+            } else {
+              Write-Output "OK $($_.Name)"
+            }
+          }
+          if ($errors.Count -gt 0) { exit 1 }
+
+  dproj-xml:
+    name: .dproj XML well-formed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xmllint
+        shell: bash
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
+      - name: Validate every .dproj parses as XML
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r f; do
+            if ! xmllint --noout "$f"; then
+              echo "::error file=$f::malformed XML"
+              fail=$((fail+1))
+            else
+              echo "OK $f"
+            fi
+          done < <(find src -name '*.dproj')
+          [[ $fail -eq 0 ]]
+
+  pascal-smoke:
+    name: Pascal source smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every .dpr begins with `program`
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r f; do
+            if ! head -1 "$f" | grep -qE '^program\s+'; then
+              echo "::error file=$f::expected first line to start with 'program'"
+              fail=$((fail+1))
+            fi
+          done < <(find src -name '*.dpr')
+          [[ $fail -eq 0 ]]
+
+      - name: Every .pas declares a unit matching its file name
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r f; do
+            base=$(basename "$f" .pas)
+            decl=$(grep -m1 -E '^\s*unit\s+' "$f" | sed -E 's/^\s*unit\s+([A-Za-z0-9._]+).*/\1/')
+            if [[ "$decl" != "$base" ]]; then
+              echo "::error file=$f::unit name '$decl' does not match file name '$base'"
+              fail=$((fail+1))
+            fi
+          done < <(find src -name '*.pas')
+          [[ $fail -eq 0 ]]

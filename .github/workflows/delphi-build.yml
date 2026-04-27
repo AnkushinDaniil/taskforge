@@ -1,0 +1,72 @@
+# Full Delphi build/test workflow.
+# Runs on a self-hosted Windows runner labelled 'delphi' with RAD Studio
+# installed. No untrusted input is used anywhere in this file.
+#
+# To enable: register a self-hosted runner with labels 'windows' and
+# 'delphi', then set repository variable RUN_DELPHI_BUILD=true. Until
+# both are in place this workflow is skipped automatically.
+#
+# Setup:
+#   1. Repo Settings > Actions > Runners > New self-hosted runner
+#   2. During registration, add labels: windows,delphi
+#   3. Repo Settings > Variables > Actions: RUN_DELPHI_BUILD = true
+#   4. Push to main, or click "Run workflow"
+
+name: Delphi build & test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: build + unit + integration + e2e
+    if: vars.RUN_DELPHI_BUILD == 'true'
+    runs-on: [self-hosted, windows, delphi]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show RAD Studio environment
+        shell: cmd
+        run: |
+          echo BDS=%BDS%
+          where dcc64
+          where rc.exe || echo rc.exe not on PATH (Windows SDK required)
+
+      - name: Build all binaries
+        shell: cmd
+        run: build.bat
+
+      - name: List build output
+        shell: cmd
+        run: dir bin
+
+      - name: Unit tests (DUnitX)
+        shell: cmd
+        run: bin\TaskForge.Tests.exe -include:Tests.Unit.* -exit:Continue
+
+      - name: Integration tests (DUnitX)
+        shell: cmd
+        run: bin\TaskForge.Tests.exe -include:Tests.Integration.* -exit:Continue
+
+      - name: E2E (PowerShell)
+        shell: pwsh
+        run: |
+          $bin = Join-Path $PWD 'bin'
+          tests/e2e/run_e2e.ps1 -Bin $bin
+
+      - name: Upload binaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskforge-binaries
+          path: bin/*.exe
+          if-no-files-found: warn
