@@ -11,7 +11,8 @@ uses
   System.DateUtils,
   Winapi.Windows,
   FireDAC.Comp.Client,
-  FireDAC.Comp.Script;
+  FireDAC.Comp.Script,
+  FireDAC.Stan.Param;
 
 type
   TMigration = record

@@ -7,6 +7,7 @@ uses
   System.Classes,
   System.DateUtils,
   FireDAC.Comp.Client,
+  FireDAC.Stan.Param,
   TaskForge.Core.EventBus,
   TaskForge.Core.Logging,
   TaskForge.Core.Domain.Tasks;

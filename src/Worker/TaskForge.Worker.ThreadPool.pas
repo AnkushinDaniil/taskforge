@@ -116,7 +116,7 @@ begin
     FQueue.PushItem(nil); // poison pill per worker
   for W in FWorkers do
   begin
-    if W.WaitFor = WAIT_TIMEOUT then ; // best effort
+    W.WaitFor; // blocks until the worker thread exits
     W.Free;
   end;
   SetLength(FWorkers, 0);
