@@ -19,16 +19,20 @@ if not exist "%OUT%\dcu" mkdir "%OUT%\dcu"
 
 set SRC=%ROOT%src
 
-REM Build resources (rc -> res) for binaries that embed migrations
-where /q rc.exe || (
-    echo ERROR: rc.exe not found on PATH. Provide Windows SDK or run from a Developer Command Prompt.
+REM Build resources (brcc32 -> res) for binaries that embed migrations.
+REM brcc32 is RAD Studio's Borland Resource Compiler (put on PATH by
+REM rsvars.bat). It uses Borland-style options (-fo<file>) and does not
+REM require the Windows SDK rc.exe — which is what fails on a clean
+REM install with the cryptic "RC1106: invalid option: -ologo".
+where /q brcc32.exe || (
+    echo ERROR: brcc32.exe not found on PATH. Make sure rsvars.bat ran successfully.
     exit /b 1
 )
 pushd "%SRC%\Worker"
-rc /nologo /fo migrations.res migrations.rc || ( popd & exit /b 1 )
+brcc32 -fomigrations.res migrations.rc || ( popd & exit /b 1 )
 popd
 pushd "%SRC%\Api"
-rc /nologo /fo migrations.res migrations.rc || ( popd & exit /b 1 )
+brcc32 -fomigrations.res migrations.rc || ( popd & exit /b 1 )
 popd
 
 set COMMON=-Q -B ^
