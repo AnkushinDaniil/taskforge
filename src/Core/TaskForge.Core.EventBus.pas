@@ -10,13 +10,10 @@ uses
   System.Generics.Collections;
 
 type
-  IEventBus = interface
-    ['{8A1F2D1A-2D5C-44C3-9F7E-3F4F6E2A1C01}']
-    procedure Subscribe<T>(const Handler: TProc<T>);
-    procedure Publish<T>(const Event: T);
-  end;
-
-  TEventBus = class(TInterfacedObject, IEventBus)
+  // NOTE: Delphi disallows generic methods on interfaces (E2535), so we
+  // expose the bus as a concrete class and let callers hold a TEventBus
+  // reference directly. Lifetime is the caller's responsibility.
+  TEventBus = class
   strict private
     type
       TThunk = reference to procedure(const Value: TValue);

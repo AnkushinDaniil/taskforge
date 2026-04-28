@@ -15,16 +15,16 @@ type
   TOverdueJob = class
   strict private
     FConn: TFDConnection;
-    FBus: IEventBus;
+    FBus: TEventBus;
     FLogger: TJsonLogger;
   public
-    constructor Create(AConn: TFDConnection; ABus: IEventBus; ALogger: TJsonLogger);
+    constructor Create(AConn: TFDConnection; ABus: TEventBus; ALogger: TJsonLogger);
     procedure Scan;
   end;
 
 implementation
 
-constructor TOverdueJob.Create(AConn: TFDConnection; ABus: IEventBus; ALogger: TJsonLogger);
+constructor TOverdueJob.Create(AConn: TFDConnection; ABus: TEventBus; ALogger: TJsonLogger);
 begin
   inherited Create;
   FConn := AConn;

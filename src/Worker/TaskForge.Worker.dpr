@@ -35,7 +35,7 @@ var
   Cfg: TConfig;
   Logger: TJsonLogger;
   Conn: TFDConnection;
-  Bus: IEventBus;
+  Bus: TEventBus;
   Bridge: TPipeBridge;
   Pool: TThreadPool;
   Job: TOverdueJob;
@@ -92,6 +92,7 @@ begin
       UninstallShutdownHandler;
     end;
   finally
+    Bus.Free;
     Conn.Free;
     Logger.Free;
   end;

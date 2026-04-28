@@ -17,7 +17,7 @@ type
   TPipeBridge = class
   strict private
     FServer: TPipeServer;
-    FBus: IEventBus;
+    FBus: TEventBus;
     FLogger: TJsonLogger;
     FQueue: TThreadedQueue<string>;
     FWriter: TThread;
@@ -25,7 +25,7 @@ type
     procedure HandleOverdue(const E: TTaskOverdue);
     procedure WriterLoop;
   public
-    constructor Create(const PipeName: string; ABus: IEventBus; ALogger: TJsonLogger);
+    constructor Create(const PipeName: string; ABus: TEventBus; ALogger: TJsonLogger);
     destructor Destroy; override;
     procedure Stop;
   end;
@@ -35,7 +35,7 @@ implementation
 uses
   System.DateUtils;
 
-constructor TPipeBridge.Create(const PipeName: string; ABus: IEventBus; ALogger: TJsonLogger);
+constructor TPipeBridge.Create(const PipeName: string; ABus: TEventBus; ALogger: TJsonLogger);
 begin
   inherited Create;
   FServer := TPipeServer.Create(PipeName);
