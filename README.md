@@ -78,17 +78,55 @@ Be explicit:
 
 ## Building
 
-From a `cmd.exe` shell on Windows:
+### If you have Delphi 12 Pro / Enterprise / Architect
+
+`build.bat` works directly from `cmd.exe`. It calls `dcc64` for each
+`.dpr` and `brcc32` for the resource files, dropping all four EXEs in
+`bin\`:
 
 ```cmd
 build.bat
 ```
 
-Outputs to `bin\`:
-- `TaskForge.Worker.exe`
-- `TaskForge.Api.exe`
-- `TaskForge.Admin.exe`
-- `TaskForge.Tests.exe`
+### If you have Delphi 12 Community Edition (free)
+
+**Important — CE blocks command-line compilation.** Direct `dcc64`,
+`MSBuild` via the Delphi targets, and `bds.exe -b` headless mode all
+return:
+
+```
+This version of the product does not support command line compiling.
+```
+
+This is intentional Embarcadero policy in CE; no script can route
+around it. `build.bat` will fail at the `dcc64` step on a CE install.
+
+**The CE workflow is IDE-driven**:
+
+1. Open Delphi 12 (Start menu → **Embarcadero RAD Studio 12** → **Delphi 12**).
+2. Register your CE serial when prompted (one-time, on first launch).
+3. **File → Open Project** → pick a `.dproj` from `src\Worker\`,
+   `src\Api\`, `src\Admin\`, or `src\Tests\`.
+4. **Project → Build** (or `Shift+F9`). Output lands in `bin\`.
+5. Repeat for the other three projects.
+
+After all four are built, the binaries themselves run without any
+licence check — `test.bat` (or its individual phases) drives them
+normally from `cmd.exe` or over SSH.
+
+When source changes, you only need to rebuild the affected `.dproj` in
+the IDE. Non-Pascal changes (build script, `.ini`, `.ps1`, `.sql`,
+README, migrations) require no rebuild.
+
+### Output
+
+```
+bin\
+├── TaskForge.Worker.exe
+├── TaskForge.Api.exe
+├── TaskForge.Admin.exe
+└── TaskForge.Tests.exe
+```
 
 ---
 
