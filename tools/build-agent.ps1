@@ -67,16 +67,24 @@ function Trigger-Build {
         throw 'Delphi IDE window (TAppBuilder) not found — open it with TaskForge.groupproj first.'
     }
 
-    $menuBarCond = New-Object System.Windows.Automation.PropertyCondition(
+    # The IDE may surface multiple menu-like controls (main menu, toolbars).
+    # Search the entire IDE window subtree for a MenuItem named "Project".
+    $miCond = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-        [System.Windows.Automation.ControlType]::MenuBar)
-    $menuBar = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $menuBarCond)
-    if (-not $menuBar) { throw 'IDE menu bar not found via UIA' }
-
-    $projectCond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.ControlType]::MenuItem)
+    $nameCond = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::NameProperty, 'Project')
-    $projectMenu = $menuBar.FindFirst([System.Windows.Automation.TreeScope]::Children, $projectCond)
-    if (-not $projectMenu) { throw '"Project" top-level menu not found' }
+    $projectCond = New-Object System.Windows.Automation.AndCondition(@($miCond, $nameCond))
+    $projectMenu = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $projectCond)
+    if (-not $projectMenu) {
+        # Diagnostic: enumerate top-level menu items so we know what UIA sees.
+        $menuItems = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $miCond)
+        $names = @()
+        foreach ($mi in $menuItems) {
+            try { $names += $mi.Current.Name } catch {}
+        }
+        throw "'Project' menu item not found. Visible MenuItems: $($names -join ', ')"
+    }
 
     # Open the menu so its children populate.
     $expand = $null
@@ -225,6 +233,7 @@ function Write-BuildStatus {
         binaries     = $Result.binaries
     }
     if ($Result.ContainsKey('stale')) { $obj.stale = $Result.stale }
+    if ($Result.ContainsKey('error')) { $obj.error = $Result.error }
     $json = $obj | ConvertTo-Json -Depth 6
     $path = Join-Path $bin '.build-status.json'
     Set-Content -Path $path -Value $json -Encoding UTF8
@@ -248,18 +257,25 @@ function Main {
                 $remote = (git rev-parse origin/main 2>$null).Trim()
                 if ($remote -and ($remote -ne $lastSha)) {
                     Write-Output "[$(Get-Date -Format o)] New commit upstream: $remote"
+                    # Advance lastSha immediately so a Trigger-Build failure
+                    # doesn't put us in a hot loop on the same commit.
+                    $lastSha = $remote
                     git pull --ff-only 2>&1 | Out-Null
 
                     $started = Get-Date
-                    Trigger-Build
-                    $result = Wait-AllBinariesFresh -Started $started -TimeoutSec $BuildTimeoutSec
-                    if ($result.outcome -eq 'success') {
-                        Copy-BinariesToBin
-                        $result.binaries = Get-BinaryStatus
+                    try {
+                        Trigger-Build
+                        $result = Wait-AllBinariesFresh -Started $started -TimeoutSec $BuildTimeoutSec
+                        if ($result.outcome -eq 'success') {
+                            Copy-BinariesToBin
+                            $result.binaries = Get-BinaryStatus
+                        }
+                    } catch {
+                        $result = @{ outcome = 'error'; error = $_.ToString(); binaries = (Get-BinaryStatus) }
+                        Write-Output "[$(Get-Date -Format o)] Trigger-Build threw: $_"
                     }
                     $completed = Get-Date
                     Write-BuildStatus -Sha $remote -Started $started -Completed $completed -Result $result
-                    $lastSha = $remote
                 }
             } catch {
                 Write-Output "[$(Get-Date -Format o)] Loop error: $_"
