@@ -101,22 +101,66 @@ This version of the product does not support command line compiling.
 This is intentional Embarcadero policy in CE; no script can route
 around it. `build.bat` will fail at the `dcc64` step on a CE install.
 
-**The CE workflow is IDE-driven**:
+**Two CE workflows, pick one.**
+
+#### CE workflow 1 — manual IDE clicks
 
 1. Open Delphi 12 (Start menu → **Embarcadero RAD Studio 12** → **Delphi 12**).
-2. Register your CE serial when prompted (one-time, on first launch).
-3. **File → Open Project** → pick a `.dproj` from `src\Worker\`,
-   `src\Api\`, `src\Admin\`, or `src\Tests\`.
-4. **Project → Build** (or `Shift+F9`). Output lands in `bin\`.
-5. Repeat for the other three projects.
+2. Register your CE serial when prompted (one-time).
+3. **File → Open Project Group** → `TaskForge.groupproj` (root of repo).
+4. **Project → Build All Projects** (`Ctrl+Shift+F9`).
 
-After all four are built, the binaries themselves run without any
-licence check — `test.bat` (or its individual phases) drives them
-normally from `cmd.exe` or over SSH.
+#### CE workflow 2 — remote-driven IDE build agent (recommended)
 
-When source changes, you only need to rebuild the affected `.dproj` in
-the IDE. Non-Pascal changes (build script, `.ini`, `.ps1`, `.sql`,
-README, migrations) require no rebuild.
+The repo ships a PowerShell agent that watches `origin/main`, sends
+`Ctrl+Shift+F9` to the running IDE on every new commit, and writes a
+status JSON. After a one-time install, you only need to keep the IDE
+open — every `git push` from anywhere triggers a rebuild on the VM
+without you touching it.
+
+One-time install (in the VM):
+
+```powershell
+cd C:\dev\taskforge
+git pull
+powershell -ExecutionPolicy Bypass -File tools\install-agent.ps1
+```
+
+Then in the Delphi IDE:
+
+1. **File → Open Project Group** → `C:\dev\taskforge\TaskForge.groupproj`.
+2. Leave the IDE open. Do nothing else.
+
+From any machine with SSH access to the VM, after a `git push`:
+
+```bash
+tools/wait-build.sh
+```
+
+That polls `bin\.build-status.json` until the agent processes your
+commit and reports `success` or surfaces the failure JSON. The status
+file looks like:
+
+```json
+{
+  "sha": "abcd123",
+  "started": "2026-04-28T20:15:00Z",
+  "completed": "2026-04-28T20:16:30Z",
+  "duration_sec": 90,
+  "outcome": "success",
+  "binaries": { "TaskForge.Worker": { "size": 2400000, "mtime": "..." }, ... }
+}
+```
+
+Uninstall:
+
+```powershell
+Unregister-ScheduledTask -TaskName TaskForgeBuildAgent -Confirm:$false
+```
+
+The agent is only useful for local single-developer flow on a Windows
+VM you control. It does not turn CE into a CI-eligible compiler — it
+just removes the manual `Ctrl+Shift+F9` keystroke from the loop.
 
 ### Output
 

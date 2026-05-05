@@ -1,0 +1,178 @@
+# TaskForge build agent — runs in the user's interactive Windows session.
+#
+# Watches origin/main for new commits. When one lands:
+#   1. git pull --ff-only
+#   2. Activate the running Delphi IDE window
+#   3. Send Ctrl+Shift+F9 (Build All Projects, requires TaskForge.groupproj loaded)
+#   4. Poll bin\ until all four EXEs are newer than the build start, or timeout
+#   5. Write bin\.build-status.json
+#
+# Pre-requisites:
+#   - Delphi IDE running with C:\dev\taskforge\TaskForge.groupproj loaded
+#   - This script registered as a scheduled task by tools\install-agent.ps1
+#   - Git in PATH
+
+[CmdletBinding()]
+param(
+    [string]$RepoPath = 'C:\dev\taskforge',
+    [int]$PollIntervalSec = 5,
+    [int]$BuildTimeoutSec = 300
+)
+
+$ErrorActionPreference = 'Continue'
+Set-StrictMode -Version Latest
+
+# ---- Win32 + UIA helpers ----------------------------------------------------
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+if (-not ('Native.Win' -as [type])) {
+    Add-Type -Namespace Native -Name Win -MemberDefinition @'
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(System.IntPtr hWnd);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool IsIconic(System.IntPtr hWnd);
+'@
+}
+
+function Find-DelphiWindow {
+    $root = [System.Windows.Automation.AutomationElement]::RootElement
+    $cond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ClassNameProperty, 'TAppBuilder')
+    return $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $cond)
+}
+
+function Activate-Window {
+    param([System.Windows.Automation.AutomationElement]$Window)
+    $hwnd = [System.IntPtr]$Window.Current.NativeWindowHandle
+    if ([Native.Win]::IsIconic($hwnd)) {
+        [Native.Win]::ShowWindow($hwnd, 9) | Out-Null   # SW_RESTORE
+    }
+    [Native.Win]::SetForegroundWindow($hwnd) | Out-Null
+    Start-Sleep -Milliseconds 600
+}
+
+function Trigger-Build {
+    $win = Find-DelphiWindow
+    if (-not $win) {
+        throw 'Delphi IDE window (TAppBuilder) not found — open it with TaskForge.groupproj first.'
+    }
+    Activate-Window -Window $win
+    # Ctrl+Shift+F9 = "Build All Projects" when a project group is active.
+    [System.Windows.Forms.SendKeys]::SendWait('^+{F9}')
+    Write-Output "[$(Get-Date -Format o)] Build keystroke sent"
+}
+
+# ---- Build status -----------------------------------------------------------
+
+$BinaryNames = @('TaskForge.Worker', 'TaskForge.Api', 'TaskForge.Admin', 'TaskForge.Tests')
+
+function Get-BinaryStatus {
+    $bin = Join-Path $RepoPath 'bin'
+    $h = [ordered]@{}
+    foreach ($n in $BinaryNames) {
+        $exe = Join-Path $bin "$n.exe"
+        if (Test-Path $exe) {
+            $f = Get-Item $exe
+            $h[$n] = @{
+                path  = $exe
+                size  = $f.Length
+                mtime = $f.LastWriteTimeUtc.ToString('o')
+            }
+        } else {
+            $h[$n] = $null
+        }
+    }
+    return $h
+}
+
+function Wait-AllBinariesFresh {
+    param([DateTime]$Started, [int]$TimeoutSec)
+    $startedUtc = $Started.ToUniversalTime()
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 3
+        $status = Get-BinaryStatus
+        $allFresh = $true
+        foreach ($n in $BinaryNames) {
+            $info = $status[$n]
+            if (-not $info) { $allFresh = $false; break }
+            $mtime = [datetime]::Parse($info.mtime).ToUniversalTime()
+            if ($mtime -lt $startedUtc) { $allFresh = $false; break }
+        }
+        if ($allFresh) {
+            return @{ outcome = 'success'; binaries = $status }
+        }
+    }
+    # Timed out — report which binaries did update vs not
+    $status = Get-BinaryStatus
+    $stale = @()
+    foreach ($n in $BinaryNames) {
+        $info = $status[$n]
+        if (-not $info) { $stale += $n; continue }
+        $mtime = [datetime]::Parse($info.mtime).ToUniversalTime()
+        if ($mtime -lt $startedUtc) { $stale += $n }
+    }
+    return @{ outcome = 'timeout'; binaries = $status; stale = $stale }
+}
+
+function Write-BuildStatus {
+    param([string]$Sha, [DateTime]$Started, [DateTime]$Completed, $Result)
+    $bin = Join-Path $RepoPath 'bin'
+    if (-not (Test-Path $bin)) { New-Item -ItemType Directory -Path $bin -Force | Out-Null }
+    $obj = [ordered]@{
+        sha          = $Sha
+        started      = $Started.ToUniversalTime().ToString('o')
+        completed    = $Completed.ToUniversalTime().ToString('o')
+        duration_sec = [int]($Completed - $Started).TotalSeconds
+        outcome      = $Result.outcome
+        binaries     = $Result.binaries
+    }
+    if ($Result.ContainsKey('stale')) { $obj.stale = $Result.stale }
+    $json = $obj | ConvertTo-Json -Depth 6
+    $path = Join-Path $bin '.build-status.json'
+    Set-Content -Path $path -Value $json -Encoding UTF8
+    Write-Output "[$(Get-Date -Format o)] Status -> $path : $($Result.outcome)"
+}
+
+# ---- Main loop --------------------------------------------------------------
+
+function Main {
+    if (-not (Test-Path $RepoPath)) {
+        throw "Repo path not found: $RepoPath"
+    }
+    Push-Location $RepoPath
+    try {
+        $lastSha = (git rev-parse HEAD 2>$null).Trim()
+        Write-Output "[$(Get-Date -Format o)] Agent started in $RepoPath at $lastSha"
+
+        while ($true) {
+            try {
+                git fetch origin main 2>$null | Out-Null
+                $remote = (git rev-parse origin/main 2>$null).Trim()
+                if ($remote -and ($remote -ne $lastSha)) {
+                    Write-Output "[$(Get-Date -Format o)] New commit upstream: $remote"
+                    git pull --ff-only 2>&1 | Out-Null
+
+                    $started = Get-Date
+                    Trigger-Build
+                    $result = Wait-AllBinariesFresh -Started $started -TimeoutSec $BuildTimeoutSec
+                    $completed = Get-Date
+                    Write-BuildStatus -Sha $remote -Started $started -Completed $completed -Result $result
+                    $lastSha = $remote
+                }
+            } catch {
+                Write-Output "[$(Get-Date -Format o)] Loop error: $_"
+            }
+            Start-Sleep -Seconds $PollIntervalSec
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
+Main

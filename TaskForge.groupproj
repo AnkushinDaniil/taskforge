@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{B5C7D8E9-FA01-4B23-8C45-678901234567}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <Projects Include="src\Worker\TaskForge.Worker.dproj"/>
+    <Projects Include="src\Api\TaskForge.Api.dproj"/>
+    <Projects Include="src\Admin\TaskForge.Admin.dproj"/>
+    <Projects Include="src\Tests\TaskForge.Tests.dproj"/>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Default.Personality.12</Borland.Personality>
+    <Borland.ProjectType/>
+    <BorlandProject>
+      <Default.Personality/>
+    </BorlandProject>
+  </ProjectExtensions>
+  <Target Name="TaskForge_Worker">
+    <MSBuild Projects="src\Worker\TaskForge.Worker.dproj"/>
+  </Target>
+  <Target Name="TaskForge_Worker_Clean">
+    <MSBuild Projects="src\Worker\TaskForge.Worker.dproj" Targets="Clean"/>
+  </Target>
+  <Target Name="TaskForge_Worker_Make">
+    <MSBuild Projects="src\Worker\TaskForge.Worker.dproj" Targets="Make"/>
+  </Target>
+  <Target Name="TaskForge_Api">
+    <MSBuild Projects="src\Api\TaskForge.Api.dproj"/>
+  </Target>
+  <Target Name="TaskForge_Api_Clean">
+    <MSBuild Projects="src\Api\TaskForge.Api.dproj" Targets="Clean"/>
+  </Target>
+  <Target Name="TaskForge_Api_Make">
+    <MSBuild Projects="src\Api\TaskForge.Api.dproj" Targets="Make"/>
+  </Target>
+  <Target Name="TaskForge_Admin">
+    <MSBuild Projects="src\Admin\TaskForge.Admin.dproj"/>
+  </Target>
+  <Target Name="TaskForge_Admin_Clean">
+    <MSBuild Projects="src\Admin\TaskForge.Admin.dproj" Targets="Clean"/>
+  </Target>
+  <Target Name="TaskForge_Admin_Make">
+    <MSBuild Projects="src\Admin\TaskForge.Admin.dproj" Targets="Make"/>
+  </Target>
+  <Target Name="TaskForge_Tests">
+    <MSBuild Projects="src\Tests\TaskForge.Tests.dproj"/>
+  </Target>
+  <Target Name="TaskForge_Tests_Clean">
+    <MSBuild Projects="src\Tests\TaskForge.Tests.dproj" Targets="Clean"/>
+  </Target>
+  <Target Name="TaskForge_Tests_Make">
+    <MSBuild Projects="src\Tests\TaskForge.Tests.dproj" Targets="Make"/>
+  </Target>
+  <Target Name="Build">
+    <CallTarget Targets="TaskForge_Worker;TaskForge_Api;TaskForge_Admin;TaskForge_Tests"/>
+  </Target>
+  <Target Name="Clean">
+    <CallTarget Targets="TaskForge_Worker_Clean;TaskForge_Api_Clean;TaskForge_Admin_Clean;TaskForge_Tests_Clean"/>
+  </Target>
+  <Target Name="Make">
+    <CallTarget Targets="TaskForge_Worker_Make;TaskForge_Api_Make;TaskForge_Admin_Make;TaskForge_Tests_Make"/>
+  </Target>
+</Project>
