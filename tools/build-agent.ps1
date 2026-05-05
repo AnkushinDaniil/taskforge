@@ -36,6 +36,18 @@ if (-not ('Native.Win' -as [type])) {
         public static extern bool ShowWindow(System.IntPtr hWnd, int nCmdShow);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern bool IsIconic(System.IntPtr hWnd);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern System.IntPtr GetMenu(System.IntPtr hWnd);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern System.IntPtr GetSubMenu(System.IntPtr hMenu, int nPos);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int GetMenuItemCount(System.IntPtr hMenu);
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        public static extern int GetMenuString(System.IntPtr hMenu, uint uIDItem, System.Text.StringBuilder lpString, int cchMax, uint flags);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern uint GetMenuItemID(System.IntPtr hMenu, int nPos);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool PostMessage(System.IntPtr hWnd, uint Msg, System.IntPtr wParam, System.IntPtr lParam);
 '@
 }
 
@@ -57,28 +69,69 @@ function Activate-Window {
 }
 
 function Trigger-Build {
-    # Delphi's main menu is a custom VCL TMainMenu that does not expose
-    # menu items through UI Automation (UIA reports only the Win32 system
-    # menu). Drive it via keystrokes against the foreground IDE window.
-    #
-    #   Alt+P     opens Project menu
-    #   B         highlights first B-item ("Build <active project>")
-    #   B         cycles to second B-item ("Build All Projects")
-    #   Enter     invokes Build All Projects
+    # Walk the IDE's Win32 menu directly and post WM_COMMAND for the
+    # "Build All Projects" item. Delphi's VCL TMainMenu wraps a real Win32
+    # HMENU, so GetMenu/GetSubMenu/GetMenuString see the live items even
+    # though UIA does not. PostMessage doesn't require the IDE to be in
+    # the foreground, so this also sidesteps SetForegroundWindow / UIPI.
     $win = Find-DelphiWindow
     if (-not $win) {
         throw 'Delphi IDE window (TAppBuilder) not found — open it with TaskForge.groupproj first.'
     }
-    Activate-Window -Window $win
+    $hwnd = [System.IntPtr]$win.Current.NativeWindowHandle
 
-    [System.Windows.Forms.SendKeys]::SendWait('%P')
-    Start-Sleep -Milliseconds 350
-    [System.Windows.Forms.SendKeys]::SendWait('B')
-    Start-Sleep -Milliseconds 100
-    [System.Windows.Forms.SendKeys]::SendWait('B')
-    Start-Sleep -Milliseconds 100
-    [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-    Write-Output "[$(Get-Date -Format o)] Build All Projects sent via Alt+P,B,B,Enter"
+    $mainMenu = [Native.Win]::GetMenu($hwnd)
+    if ($mainMenu -eq [System.IntPtr]::Zero) {
+        throw 'IDE has no Win32 menu (GetMenu returned null)'
+    }
+
+    function Get-MenuText {
+        param([System.IntPtr]$Menu, [int]$Pos)
+        $sb = New-Object System.Text.StringBuilder 512
+        # MF_BYPOSITION = 0x400
+        [Native.Win]::GetMenuString($Menu, [uint32]$Pos, $sb, 512, 0x400) | Out-Null
+        return $sb.ToString()
+    }
+
+    # Find "Project" in the top-level menu bar
+    $top = [Native.Win]::GetMenuItemCount($mainMenu)
+    $projectIdx = -1
+    $topNames = @()
+    for ($i = 0; $i -lt $top; $i++) {
+        $name = (Get-MenuText -Menu $mainMenu -Pos $i)
+        $topNames += $name
+        # The text may include accelerators ('&P'roject); strip & for matching
+        if ($name -replace '&','' -match '^\s*Project\s*$') {
+            $projectIdx = $i
+            break
+        }
+    }
+    if ($projectIdx -lt 0) {
+        throw "Project menu not found. Top-level menu names: $($topNames -join ' | ')"
+    }
+
+    $projectMenu = [Native.Win]::GetSubMenu($mainMenu, $projectIdx)
+    if ($projectMenu -eq [System.IntPtr]::Zero) {
+        throw 'GetSubMenu(Project) returned null'
+    }
+
+    # Find "Build All Projects" inside the Project menu
+    $pcount = [Native.Win]::GetMenuItemCount($projectMenu)
+    $buildAllId = 0
+    for ($j = 0; $j -lt $pcount; $j++) {
+        $itemText = (Get-MenuText -Menu $projectMenu -Pos $j) -replace '&',''
+        if ($itemText -match '^\s*Build All Projects\s*$') {
+            $buildAllId = [Native.Win]::GetMenuItemID($projectMenu, $j)
+            break
+        }
+    }
+    if ($buildAllId -eq 0) {
+        throw '"Build All Projects" menu item not found in Project submenu'
+    }
+
+    # WM_COMMAND = 0x0111. wParam = menu item ID, lParam = 0
+    [Native.Win]::PostMessage($hwnd, 0x0111, [System.IntPtr]$buildAllId, [System.IntPtr]::Zero) | Out-Null
+    Write-Output "[$(Get-Date -Format o)] Posted WM_COMMAND id=$buildAllId for Build All Projects"
 }
 
 # ---- Build status -----------------------------------------------------------
