@@ -57,73 +57,28 @@ function Activate-Window {
 }
 
 function Trigger-Build {
-    # Drive the IDE menu via UI Automation. This is more reliable than SendKeys
-    # because:
-    #   - "Build All Projects" has no default keyboard shortcut in CE
-    #   - UIA InvokePattern works without bringing the IDE to the foreground,
-    #     which sidesteps UIPI / UAC blocks if the IDE happens to be elevated
+    # Delphi's main menu is a custom VCL TMainMenu that does not expose
+    # menu items through UI Automation (UIA reports only the Win32 system
+    # menu). Drive it via keystrokes against the foreground IDE window.
+    #
+    #   Alt+P     opens Project menu
+    #   B         highlights first B-item ("Build <active project>")
+    #   B         cycles to second B-item ("Build All Projects")
+    #   Enter     invokes Build All Projects
     $win = Find-DelphiWindow
     if (-not $win) {
         throw 'Delphi IDE window (TAppBuilder) not found — open it with TaskForge.groupproj first.'
     }
+    Activate-Window -Window $win
 
-    # The IDE may surface multiple menu-like controls (main menu, toolbars).
-    # Search the entire IDE window subtree for a MenuItem named "Project".
-    $miCond = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-        [System.Windows.Automation.ControlType]::MenuItem)
-    $nameCond = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, 'Project')
-    $projectCond = New-Object System.Windows.Automation.AndCondition(@($miCond, $nameCond))
-    $projectMenu = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $projectCond)
-    if (-not $projectMenu) {
-        # Diagnostic: enumerate top-level menu items so we know what UIA sees.
-        $menuItems = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $miCond)
-        $names = @()
-        foreach ($mi in $menuItems) {
-            try { $names += $mi.Current.Name } catch {}
-        }
-        throw "'Project' menu item not found. Visible MenuItems: $($names -join ', ')"
-    }
-
-    # Open the menu so its children populate.
-    $expand = $null
-    $invoke = $null
-    if ($projectMenu.TryGetCurrentPattern(
-            [System.Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$expand)) {
-        $expand.Expand()
-    } elseif ($projectMenu.TryGetCurrentPattern(
-            [System.Windows.Automation.InvokePattern]::Pattern, [ref]$invoke)) {
-        $invoke.Invoke()
-    } else {
-        throw '"Project" menu has no Expand or Invoke pattern'
-    }
+    [System.Windows.Forms.SendKeys]::SendWait('%P')
     Start-Sleep -Milliseconds 350
-
-    # The popup menu is parented to the desktop; search from the root element.
-    $root = [System.Windows.Automation.AutomationElement]::RootElement
-    $buildAllCond = New-Object System.Windows.Automation.PropertyCondition(
-        [System.Windows.Automation.AutomationElement]::NameProperty, 'Build All Projects')
-    $deadline = (Get-Date).AddSeconds(2)
-    $buildAll = $null
-    while (-not $buildAll -and (Get-Date) -lt $deadline) {
-        $buildAll = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $buildAllCond)
-        if (-not $buildAll) { Start-Sleep -Milliseconds 100 }
-    }
-
-    if (-not $buildAll) {
-        # Best-effort: dismiss the half-opened menu if we have Forms loaded.
-        try { [System.Windows.Forms.SendKeys]::SendWait('{ESC}') } catch {}
-        throw '"Build All Projects" menu item not found — menu may not have opened'
-    }
-
-    $buildInvoke = $null
-    if (-not $buildAll.TryGetCurrentPattern(
-            [System.Windows.Automation.InvokePattern]::Pattern, [ref]$buildInvoke)) {
-        throw '"Build All Projects" found but does not expose InvokePattern'
-    }
-    $buildInvoke.Invoke()
-    Write-Output "[$(Get-Date -Format o)] Build All Projects invoked via UIA"
+    [System.Windows.Forms.SendKeys]::SendWait('B')
+    Start-Sleep -Milliseconds 100
+    [System.Windows.Forms.SendKeys]::SendWait('B')
+    Start-Sleep -Milliseconds 100
+    [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+    Write-Output "[$(Get-Date -Format o)] Build All Projects sent via Alt+P,B,B,Enter"
 }
 
 # ---- Build status -----------------------------------------------------------
