@@ -39,6 +39,10 @@ if (-not ('Native.Win' -as [type])) {
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern bool IsIconic(System.IntPtr hWnd);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern System.IntPtr GetForegroundWindow();
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto, SetLastError = true)]
+        public static extern int GetWindowText(System.IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern uint GetWindowThreadProcessId(System.IntPtr hwnd, System.IntPtr lpdwProcessId);
@@ -47,6 +51,13 @@ if (-not ('Native.Win' -as [type])) {
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
 '@
+}
+
+function Get-WindowTitle {
+    param([System.IntPtr]$Hwnd)
+    $sb = New-Object System.Text.StringBuilder 512
+    [Native.Win]::GetWindowText($Hwnd, $sb, 512) | Out-Null
+    return $sb.ToString()
 }
 
 $VK_MENU   = [byte]0x12
@@ -127,7 +138,17 @@ function Trigger-Build {
     }
     $hwnd = [System.IntPtr]$win.Current.NativeWindowHandle
 
+    $idePid = [Native.Win]::GetWindowThreadProcessId($hwnd, [System.IntPtr]::Zero)
+    $fgBefore = [Native.Win]::GetForegroundWindow()
+    $fgBeforeTitle = Get-WindowTitle -Hwnd $fgBefore
+    Write-Output "[$(Get-Date -Format o)] IDE hwnd=$($hwnd.ToInt64()) ideTid=$idePid; fg-before hwnd=$($fgBefore.ToInt64()) title='$fgBeforeTitle'"
+
     Force-Foreground -Hwnd $hwnd
+
+    $fgAfter = [Native.Win]::GetForegroundWindow()
+    $fgAfterTitle = Get-WindowTitle -Hwnd $fgAfter
+    $matched = if ($fgAfter -eq $hwnd) { 'YES' } else { 'NO' }
+    Write-Output "[$(Get-Date -Format o)] fg-after hwnd=$($fgAfter.ToInt64()) title='$fgAfterTitle' (matches IDE: $matched)"
 
     # Alt+P (compound — Alt held while P is pressed)
     [Native.Win]::keybd_event($VK_MENU, 0, 0, 0)
