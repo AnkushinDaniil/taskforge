@@ -69,17 +69,43 @@ function Trigger-Build {
 
 # ---- Build status -----------------------------------------------------------
 
-$BinaryNames = @('TaskForge.Worker', 'TaskForge.Api', 'TaskForge.Admin', 'TaskForge.Tests')
+$BinaryProjects = [ordered]@{
+    'TaskForge.Worker' = 'src\Worker'
+    'TaskForge.Api'    = 'src\Api'
+    'TaskForge.Admin'  = 'src\Admin'
+    'TaskForge.Tests'  = 'src\Tests'
+}
+$BinaryNames = @($BinaryProjects.Keys)
+
+function Find-LatestExe {
+    # The IDE may emit the .exe to bin\, to the project source dir, or under
+    # src\Foo\Win64\Release\. Return the newest match across those.
+    param([string]$Name, [string]$ProjectDir)
+    $candidates = @(
+        (Join-Path (Join-Path $RepoPath 'bin')           "$Name.exe"),
+        (Join-Path (Join-Path $RepoPath $ProjectDir)     "$Name.exe"),
+        (Join-Path (Join-Path $RepoPath $ProjectDir)     "Win64\Release\$Name.exe"),
+        (Join-Path (Join-Path $RepoPath $ProjectDir)     "Win64\Debug\$Name.exe")
+    )
+    $best = $null
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            $f = Get-Item $c
+            if (-not $best -or $f.LastWriteTimeUtc -gt $best.LastWriteTimeUtc) {
+                $best = $f
+            }
+        }
+    }
+    return $best
+}
 
 function Get-BinaryStatus {
-    $bin = Join-Path $RepoPath 'bin'
     $h = [ordered]@{}
     foreach ($n in $BinaryNames) {
-        $exe = Join-Path $bin "$n.exe"
-        if (Test-Path $exe) {
-            $f = Get-Item $exe
+        $f = Find-LatestExe -Name $n -ProjectDir $BinaryProjects[$n]
+        if ($f) {
             $h[$n] = @{
-                path  = $exe
+                path  = $f.FullName
                 size  = $f.Length
                 mtime = $f.LastWriteTimeUtc.ToString('o')
             }
@@ -88,6 +114,21 @@ function Get-BinaryStatus {
         }
     }
     return $h
+}
+
+function Copy-BinariesToBin {
+    # After a successful build, mirror everything to bin\ so tests / SSH
+    # callers have a single canonical location.
+    $bin = Join-Path $RepoPath 'bin'
+    if (-not (Test-Path $bin)) { New-Item -ItemType Directory -Path $bin -Force | Out-Null }
+    foreach ($n in $BinaryNames) {
+        $src = Find-LatestExe -Name $n -ProjectDir $BinaryProjects[$n]
+        if (-not $src) { continue }
+        $dst = Join-Path $bin "$n.exe"
+        if ($src.FullName -ne $dst) {
+            Copy-Item -Path $src.FullName -Destination $dst -Force
+        }
+    }
 }
 
 function Wait-AllBinariesFresh {
@@ -161,6 +202,10 @@ function Main {
                     $started = Get-Date
                     Trigger-Build
                     $result = Wait-AllBinariesFresh -Started $started -TimeoutSec $BuildTimeoutSec
+                    if ($result.outcome -eq 'success') {
+                        Copy-BinariesToBin
+                        $result.binaries = Get-BinaryStatus
+                    }
                     $completed = Get-Date
                     Write-BuildStatus -Sha $remote -Started $started -Completed $completed -Result $result
                     $lastSha = $remote
