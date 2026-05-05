@@ -57,14 +57,65 @@ function Activate-Window {
 }
 
 function Trigger-Build {
+    # Drive the IDE menu via UI Automation. This is more reliable than SendKeys
+    # because:
+    #   - "Build All Projects" has no default keyboard shortcut in CE
+    #   - UIA InvokePattern works without bringing the IDE to the foreground,
+    #     which sidesteps UIPI / UAC blocks if the IDE happens to be elevated
     $win = Find-DelphiWindow
     if (-not $win) {
         throw 'Delphi IDE window (TAppBuilder) not found — open it with TaskForge.groupproj first.'
     }
-    Activate-Window -Window $win
-    # Ctrl+Shift+F9 = "Build All Projects" when a project group is active.
-    [System.Windows.Forms.SendKeys]::SendWait('^+{F9}')
-    Write-Output "[$(Get-Date -Format o)] Build keystroke sent"
+
+    $menuBarCond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::MenuBar)
+    $menuBar = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $menuBarCond)
+    if (-not $menuBar) { throw 'IDE menu bar not found via UIA' }
+
+    $projectCond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty, 'Project')
+    $projectMenu = $menuBar.FindFirst([System.Windows.Automation.TreeScope]::Children, $projectCond)
+    if (-not $projectMenu) { throw '"Project" top-level menu not found' }
+
+    # Open the menu so its children populate.
+    $expand = $null
+    $invoke = $null
+    if ($projectMenu.TryGetCurrentPattern(
+            [System.Windows.Automation.ExpandCollapsePattern]::Pattern, [ref]$expand)) {
+        $expand.Expand()
+    } elseif ($projectMenu.TryGetCurrentPattern(
+            [System.Windows.Automation.InvokePattern]::Pattern, [ref]$invoke)) {
+        $invoke.Invoke()
+    } else {
+        throw '"Project" menu has no Expand or Invoke pattern'
+    }
+    Start-Sleep -Milliseconds 350
+
+    # The popup menu is parented to the desktop; search from the root element.
+    $root = [System.Windows.Automation.AutomationElement]::RootElement
+    $buildAllCond = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::NameProperty, 'Build All Projects')
+    $deadline = (Get-Date).AddSeconds(2)
+    $buildAll = $null
+    while (-not $buildAll -and (Get-Date) -lt $deadline) {
+        $buildAll = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $buildAllCond)
+        if (-not $buildAll) { Start-Sleep -Milliseconds 100 }
+    }
+
+    if (-not $buildAll) {
+        # Best-effort: dismiss the half-opened menu if we have Forms loaded.
+        try { [System.Windows.Forms.SendKeys]::SendWait('{ESC}') } catch {}
+        throw '"Build All Projects" menu item not found — menu may not have opened'
+    }
+
+    $buildInvoke = $null
+    if (-not $buildAll.TryGetCurrentPattern(
+            [System.Windows.Automation.InvokePattern]::Pattern, [ref]$buildInvoke)) {
+        throw '"Build All Projects" found but does not expose InvokePattern'
+    }
+    $buildInvoke.Invoke()
+    Write-Output "[$(Get-Date -Format o)] Build All Projects invoked via UIA"
 }
 
 # ---- Build status -----------------------------------------------------------
