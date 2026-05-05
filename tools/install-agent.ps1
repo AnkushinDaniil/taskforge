@@ -31,6 +31,25 @@ if (-not (Test-Path $binDir)) {
     New-Item -ItemType Directory -Path $binDir -Force | Out-Null
 }
 
+# Disable Windows' foreground-stealing lock so the agent can bring the
+# Delphi IDE to the front before sending keystrokes. HKCU only — no
+# admin needed. The Set-ItemProperty persists across sign-in; the
+# SystemParametersInfo call applies it to the *current* session so a
+# sign-out is not required.
+Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' `
+    -Name 'ForegroundLockTimeout' -Value 0 -Type DWord -Force
+
+if (-not ('Native.SPI' -as [type])) {
+    Add-Type -Namespace Native -Name SPI -MemberDefinition @'
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError=true)]
+        public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, System.IntPtr pvParam, uint fWinIni);
+'@
+}
+# SPI_SETFOREGROUNDLOCKTIMEOUT = 0x2001
+# SPIF_UPDATEINIFILE | SPIF_SENDCHANGE = 0x3
+$ok = [Native.SPI]::SystemParametersInfo(0x2001, 0, [System.IntPtr]::Zero, 0x3)
+Write-Host "  ForegroundLockTimeout = 0 (HKCU registry + live: $ok)"
+
 # Build the launch arguments. We redirect output to a log file the agent
 # itself can append to (PowerShell's transcript is too noisy here).
 $argList = @(

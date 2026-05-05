@@ -147,8 +147,10 @@ function Trigger-Build {
 
     $fgAfter = [Native.Win]::GetForegroundWindow()
     $fgAfterTitle = Get-WindowTitle -Hwnd $fgAfter
-    $matched = if ($fgAfter -eq $hwnd) { 'YES' } else { 'NO' }
-    Write-Output "[$(Get-Date -Format o)] fg-after hwnd=$($fgAfter.ToInt64()) title='$fgAfterTitle' (matches IDE: $matched)"
+    if ($fgAfter -ne $hwnd) {
+        throw "Could not bring IDE to foreground (current foreground: '$fgAfterTitle'). Click the Delphi IDE window once to give it focus, then retry. If this keeps happening, run tools\install-agent.ps1 again to apply the ForegroundLockTimeout=0 registry tweak, then sign out and back in."
+    }
+    Write-Output "[$(Get-Date -Format o)] IDE is foreground; sending keystrokes"
 
     # Alt+P (compound — Alt held while P is pressed)
     [Native.Win]::keybd_event($VK_MENU, 0, 0, 0)
