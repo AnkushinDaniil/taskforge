@@ -6,8 +6,10 @@ interface
 
 uses
   System.SysUtils,
+  System.DateUtils,
   System.JSON,
   System.Classes,
+  System.Generics.Collections,
   FireDAC.Comp.Client,
   TaskForge.Core.Attributes,
   TaskForge.Core.Result,
@@ -16,6 +18,8 @@ uses
   TaskForge.Core.Json,
   TaskForge.Api.Router,
   TaskForge.Api.ETag;
+
+function ParamOr(const Params: TRouteParams; const Key, Default: string): string;
 
 type
   TTasksController = class
@@ -43,6 +47,12 @@ type
   end;
 
 implementation
+
+function ParamOr(const Params: TRouteParams; const Key, Default: string): string;
+begin
+  if not Params.TryGetValue(Key, Result) then
+    Result := Default;
+end;
 
 constructor TTasksController.Create(ARepo: TRepository<TTask>);
 begin
@@ -81,9 +91,9 @@ begin
   Q := Ctx.Path;
   if Pos('?', Q) > 0 then ; // path is already without query — left as a hook
 
-  StatusVal := Ctx.Params.GetValueOrDefault('status', '');
+  StatusVal := ParamOr(Ctx.Params, 'status', '');
   if StatusVal <> '' then Filter.Status := StatusVal;
-  if TryStrToInt(Ctx.Params.GetValueOrDefault('limit', ''), Limit) then
+  if TryStrToInt(ParamOr(Ctx.Params, 'limit', ''), Limit) then
     Filter.Limit := Limit;
 
   R := FRepo.List(Filter);
@@ -109,7 +119,7 @@ var
   J: TJSONObject;
   ETag, IfNoneMatch: string;
 begin
-  if not TryStrToInt64(Ctx.Params.GetValueOrDefault('id', ''), Id) then
+  if not TryStrToInt64(ParamOr(Ctx.Params, 'id', ''), Id) then
   begin
     WriteJsonString(Ctx, 400, '{"error":"invalid id"}');
     Exit;
@@ -193,7 +203,7 @@ var
   ETag: string;
   After: Result<TTask>;
 begin
-  if not TryStrToInt64(Ctx.Params.GetValueOrDefault('id', ''), Id) then
+  if not TryStrToInt64(ParamOr(Ctx.Params, 'id', ''), Id) then
   begin
     WriteJsonString(Ctx, 400, '{"error":"invalid id"}');
     Exit;
@@ -264,7 +274,7 @@ var
   Id: Int64;
   R: Result<Boolean>;
 begin
-  if not TryStrToInt64(Ctx.Params.GetValueOrDefault('id', ''), Id) then
+  if not TryStrToInt64(ParamOr(Ctx.Params, 'id', ''), Id) then
   begin
     WriteJsonString(Ctx, 400, '{"error":"invalid id"}');
     Exit;
