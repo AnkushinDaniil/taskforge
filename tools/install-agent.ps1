@@ -68,7 +68,10 @@ $settings  = New-ScheduledTaskSettingsSet `
                 -AllowStartIfOnBatteries `
                 -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) `
                 -ExecutionTimeLimit ([TimeSpan]::Zero)
-$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+# Run elevated so the agent can send keystrokes to the elevated Delphi
+# IDE window. Without this, Windows UIPI silently drops keystrokes
+# travelling from a low-IL process to a high-IL window.
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
 
 Register-ScheduledTask `
     -TaskName  $TaskName `
