@@ -159,17 +159,21 @@ function Trigger-Build {
     [Native.Win]::keybd_event($VK_MENU, 0, $KEYEVENTF_KEYUP, 0)
     Start-Sleep -Milliseconds 400
 
-    Send-Key -Vk $VK_END
+    # The menu wraps on Up: from "Add to Project..." (initial highlight),
+    # one Up lands on "Options..." (last). From there:
+    #   Up 2 -> Deployment
+    #   Up 3 -> Project Page Options...
+    #   Up 4 -> Dependencies...
+    #   Up 5 -> Resources and Images...
+    #   Up 6 -> Build All Projects   <- target
+    for ($i = 0; $i -lt 6; $i++) {
+        Send-Key -Vk $VK_UP
+        Start-Sleep -Milliseconds 70
+    }
     Start-Sleep -Milliseconds 120
 
-    for ($i = 0; $i -lt 5; $i++) {
-        Send-Key -Vk $VK_UP
-        Start-Sleep -Milliseconds 60
-    }
-    Start-Sleep -Milliseconds 100
-
     Send-Key -Vk $VK_RETURN
-    Write-Output "[$(Get-Date -Format o)] Build All Projects: Alt+P, End, Up*5, Enter"
+    Write-Output "[$(Get-Date -Format o)] Build All Projects: Alt+P, Up*6, Enter"
 }
 
 # ---- Build status -----------------------------------------------------------
