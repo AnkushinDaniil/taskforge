@@ -1,4 +1,4 @@
-unit Tests.Unit.ThreadPool;
+unit Tests.UT.ThreadPool;
 
 interface
 

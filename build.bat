@@ -51,7 +51,7 @@ echo === Building TaskForge.Admin.exe ===
 dcc64 %COMMON% -U"%SRC%\Admin" "%SRC%\Admin\TaskForge.Admin.dpr" || goto :err
 
 echo === Building TaskForge.Tests.exe ===
-dcc64 %COMMON% -U"%SRC%\Api;%SRC%\Worker;%SRC%\Tests;%SRC%\Tests\Support;%SRC%\Tests\Unit;%SRC%\Tests\Integration" ^
+dcc64 %COMMON% -U"%SRC%\Api;%SRC%\Worker;%SRC%\Tests;%SRC%\Tests\Support;%SRC%\Tests\UT;%SRC%\Tests\Integration" ^
   "%SRC%\Tests\TaskForge.Tests.dpr" || goto :err
 
 echo BUILD OK

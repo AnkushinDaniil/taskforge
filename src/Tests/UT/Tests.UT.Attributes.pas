@@ -1,4 +1,4 @@
-unit Tests.Unit.Attributes;
+unit Tests.UT.Attributes;
 
 interface
 

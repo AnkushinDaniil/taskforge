@@ -1,4 +1,4 @@
-unit Tests.Unit.Config;
+unit Tests.UT.Config;
 
 interface
 

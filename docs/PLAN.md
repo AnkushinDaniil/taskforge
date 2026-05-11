@@ -116,12 +116,12 @@ taskforge/
 │       ├── TaskForge.Tests.dpr            # DUnitX runner — unit + integration
 │       ├── TaskForge.Tests.dproj
 │       ├── Unit/
-│       │   ├── Tests.Unit.Result.pas
-│       │   ├── Tests.Unit.Json.pas
-│       │   ├── Tests.Unit.ThreadPool.pas
-│       │   ├── Tests.Unit.Attributes.pas
-│       │   ├── Tests.Unit.Config.pas
-│       │   └── Tests.Unit.Router.pas
+│       │   ├── Tests.UT.Result.pas
+│       │   ├── Tests.UT.Json.pas
+│       │   ├── Tests.UT.ThreadPool.pas
+│       │   ├── Tests.UT.Attributes.pas
+│       │   ├── Tests.UT.Config.pas
+│       │   └── Tests.UT.Router.pas
 │       ├── Integration/
 │       │   ├── Tests.Integration.Migrations.pas
 │       │   ├── Tests.Integration.Repository.pas
@@ -313,23 +313,23 @@ round-trip, and pool shutdown. We exceed that with a layered pyramid:
 
 Pure-CPU tests, milliseconds each, target ~80% line coverage of Core.
 
-- `Tests.Unit.Result.pas` — Ok/Err round-trip, `Implicit`, `Equal`,
+- `Tests.UT.Result.pas` — Ok/Err round-trip, `Implicit`, `Equal`,
   `UnwrapOr`, `Unwrap` raises `EResultUnwrap` on Err, default-init record
   is treated as Err.
-- `Tests.Unit.Json.pas` — `TTask` round-trip preserves `[JsonName]` keys,
+- `Tests.UT.Json.pas` — `TTask` round-trip preserves `[JsonName]` keys,
   `[JsonIgnore]` fields are absent on serialise and ignored on
   deserialise, missing optional fields decode to defaults, malformed
   JSON returns `Result.Err`.
-- `Tests.Unit.ThreadPool.pas` — submit 1000 jobs, request shutdown,
+- `Tests.UT.ThreadPool.pas` — submit 1000 jobs, request shutdown,
   assert all completed within timeout, no jobs lost, pool refuses new
   work after shutdown, bounded queue back-pressures `Submit` when full,
   poison-pill drain in order.
-- `Tests.Unit.Attributes.pas` — RTTI returns expected attributes for
+- `Tests.UT.Attributes.pas` — RTTI returns expected attributes for
   `TTask`, `[Column]` name overrides field name, `[PrimaryKey]` exactly
   one per record (assertion).
-- `Tests.Unit.Config.pas` — env var overrides ini, missing key falls
+- `Tests.UT.Config.pas` — env var overrides ini, missing key falls
   back to default, type coercion (`Integer`/`Boolean`) works.
-- `Tests.Unit.Router.pas` — route regex extracts `{id}` correctly,
+- `Tests.UT.Router.pas` — route regex extracts `{id}` correctly,
   collision detection (two routes match same path) raises at startup,
   unknown method/path returns 404 sentinel.
 
@@ -413,7 +413,7 @@ echo All tests passed.
 
 Unit and integration share the `TaskForge.Tests.exe` runner because
 both are DUnitX; they're separated by folder + fixture-name prefix
-(`Tests.Unit.*` vs `Tests.Integration.*`) so DUnitX's `-include` /
+(`Tests.UT.*` vs `Tests.Integration.*`) so DUnitX's `-include` /
 `-exclude` flags can run them independently when you want to.
 
 **No GUI E2E for Admin.exe**: Windows UI Automation testing of VCL
@@ -500,14 +500,14 @@ matters: build → unit → integration → e2e → manual GUI smoke.
    blocker for future runs).
 2. From `cmd.exe`: `test.bat`. Expect:
    - `build.bat` produces four EXEs in `bin\`.
-   - `TaskForge.Tests.exe` PASS for every `Tests.Unit.*` and
+   - `TaskForge.Tests.exe` PASS for every `Tests.UT.*` and
      `Tests.Integration.*` fixture.
    - `run_e2e.ps1` PASS for all five scenarios.
    - Final line: `All tests passed.`
 
 **B. Per-layer manual run (when isolating a failure)**
 
-3. Unit only: `bin\TaskForge.Tests.exe -include:Tests.Unit.*
+3. Unit only: `bin\TaskForge.Tests.exe -include:Tests.UT.*
    -exit:Continue`.
 4. Integration only: `bin\TaskForge.Tests.exe
    -include:Tests.Integration.* -exit:Continue`.

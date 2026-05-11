@@ -231,7 +231,7 @@ test.bat                                          REM build → unit → integra
 Or run a single layer when isolating a failure:
 
 ```cmd
-bin\TaskForge.Tests.exe -include:Tests.Unit.*        -exit:Continue
+bin\TaskForge.Tests.exe -include:Tests.UT.*        -exit:Continue
 bin\TaskForge.Tests.exe -include:Tests.Integration.* -exit:Continue
 powershell -NoProfile -ExecutionPolicy Bypass -File tests\e2e\run_e2e.ps1 -Bin .\bin
 powershell -File tests\e2e\scenarios\03_overdue_sse_stream.ps1 -Bin .\bin

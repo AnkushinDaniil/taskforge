@@ -1,0 +1,423 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778501089919,
+  "projectRoot": "/Users/daniilankusin/taskforge",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "bin",
+      "docs",
+      "src",
+      "tests"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "bin": {
+      "path": "bin",
+      "purpose": "Executable scripts",
+      "fileCount": 0,
+      "lastAccessed": 1778501089883,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1778501089889,
+      "keyFiles": [
+        "PLAN.md"
+      ]
+    },
+    "migrations": {
+      "path": "migrations",
+      "purpose": "Database migrations",
+      "fileCount": 2,
+      "lastAccessed": 1778501089893,
+      "keyFiles": [
+        "0001_init.sql",
+        "0002_add_version_column.sql"
+      ]
+    },
+    "packages": {
+      "path": "packages",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778501089907,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1778501089909,
+      "keyFiles": []
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 0,
+      "lastAccessed": 1778501089911,
+      "keyFiles": []
+    },
+    "tools": {
+      "path": "tools",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1778501089911,
+      "keyFiles": [
+        "build-agent.ps1",
+        "install-agent.ps1",
+        "wait-build.sh"
+      ]
+    },
+    "src/Api": {
+      "path": "src/Api",
+      "purpose": "API routes",
+      "fileCount": 10,
+      "lastAccessed": 1778501089919,
+      "keyFiles": [
+        "TaskForge.Api.Controllers.Events.pas",
+        "TaskForge.Api.Controllers.Tasks.pas",
+        "TaskForge.Api.ETag.pas"
+      ]
+    },
+    "src/Tests": {
+      "path": "src/Tests",
+      "purpose": "Test files",
+      "fileCount": 2,
+      "lastAccessed": 1778501089919,
+      "keyFiles": [
+        "TaskForge.Tests.dpr",
+        "TaskForge.Tests.dproj"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/Api/TaskForge.Api.Controllers.Tasks.pas",
+      "accessCount": 10,
+      "lastAccessed": 1778177579830,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.dpr",
+      "accessCount": 5,
+      "lastAccessed": 1777392338399,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.Pipe.pas",
+      "accessCount": 3,
+      "lastAccessed": 1777392308269,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.OverdueJob.pas",
+      "accessCount": 3,
+      "lastAccessed": 1777393029972,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.Server.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777294572600,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Repository.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777295104419,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.ThreadPool.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777295112950,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.Router.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777295138369,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/migrations.rc",
+      "accessCount": 2,
+      "lastAccessed": 1777391567568,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/migrations.rc",
+      "accessCount": 2,
+      "lastAccessed": 1777391573135,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.EventBus.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777392295905,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Logging.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777392709089,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.ThreadPool.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777393005669,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Migrations.pas",
+      "accessCount": 2,
+      "lastAccessed": 1777393012761,
+      "type": "file"
+    },
+    {
+      "path": "migrations/0001_init.sql",
+      "accessCount": 1,
+      "lastAccessed": 1777294167552,
+      "type": "file"
+    },
+    {
+      "path": "migrations/0002_add_version_column.sql",
+      "accessCount": 1,
+      "lastAccessed": 1777294171763,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Attributes.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294177626,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Result.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294185074,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Config.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294232377,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Domain.Tasks.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294238343,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Rtti.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294242174,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Json.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294263282,
+      "type": "file"
+    },
+    {
+      "path": "src/Core/TaskForge.Core.Ipc.NamedPipe.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294331765,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.Signals.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294341298,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/config.ini",
+      "accessCount": 1,
+      "lastAccessed": 1777294391523,
+      "type": "file"
+    },
+    {
+      "path": "src/Worker/TaskForge.Worker.dproj",
+      "accessCount": 1,
+      "lastAccessed": 1777294426966,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.ETag.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294448405,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.Sse.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294454987,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.Controllers.Events.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294495183,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.dpr",
+      "accessCount": 1,
+      "lastAccessed": 1777294527626,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/config.ini",
+      "accessCount": 1,
+      "lastAccessed": 1777294528127,
+      "type": "file"
+    },
+    {
+      "path": "src/Api/TaskForge.Api.dproj",
+      "accessCount": 1,
+      "lastAccessed": 1777294544109,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.ViewModels.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294655492,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.Mvvm.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294658186,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.HttpClient.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294680134,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.Theme.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294688004,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.Main.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294716360,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.Main.dfm",
+      "accessCount": 1,
+      "lastAccessed": 1777294727542,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.dpr",
+      "accessCount": 1,
+      "lastAccessed": 1777294731664,
+      "type": "file"
+    },
+    {
+      "path": "src/Admin/TaskForge.Admin.dproj",
+      "accessCount": 1,
+      "lastAccessed": 1777294743825,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Support/Tests.Support.Ports.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294758478,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Support/Tests.Support.Db.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294764578,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Support/Tests.Support.Http.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294776593,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.Result.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294784650,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.Json.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294792543,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.Attributes.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294807559,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.Config.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294814386,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Unit/Tests.Unit.Router.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294821332,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Integration/Tests.Integration.Migrations.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294828924,
+      "type": "file"
+    },
+    {
+      "path": "src/Tests/Integration/Tests.Integration.Repository.pas",
+      "accessCount": 1,
+      "lastAccessed": 1777294842490,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
