@@ -75,7 +75,9 @@ begin
     FM := Default(TFieldMap);
     FM.Field := F;
     FM.ColumnName := F.Name;
-    FM.JsonName := F.Name;
+    // Default JSON name to the lowercased Pascal field name — JSON
+    // convention is lowercase; explicit [JsonName('foo_bar')] overrides.
+    FM.JsonName := LowerCase(F.Name);
     for A in F.GetAttributes do
     begin
       if A is ColumnAttribute then FM.ColumnName := ColumnAttribute(A).Name;

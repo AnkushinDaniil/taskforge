@@ -12,6 +12,7 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client,
   FireDAC.Comp.Script,
+  FireDAC.Comp.ScriptCommands,
   FireDAC.Stan.Param;
 
 type
