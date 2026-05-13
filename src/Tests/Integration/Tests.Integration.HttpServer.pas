@@ -104,7 +104,7 @@ var
   Code: Integer;
 begin
   Code := PostJson('/tasks', '{"title":"hi","status":"open","due_at":"2026-12-31T00:00:00Z"}', Body);
-  Assert.AreEqual(201, Code);
+  Assert.AreEqual(201, Code, 'POST body: ' + Body);
 end;
 
 procedure THttpServerTests.Get_ReturnsList;
@@ -113,7 +113,7 @@ var
   Code: Integer;
 begin
   Code := GetUrl('/tasks', Body);
-  Assert.AreEqual(200, Code);
+  Assert.AreEqual(200, Code, 'GET body: ' + Body);
 end;
 
 procedure THttpServerTests.GetUnknown_Returns404;
@@ -122,7 +122,7 @@ var
   Code: Integer;
 begin
   Code := GetUrl('/tasks/9999999', Body);
-  Assert.AreEqual(404, Code);
+  Assert.AreEqual(404, Code, 'GET 404 body: ' + Body);
 end;
 
 initialization

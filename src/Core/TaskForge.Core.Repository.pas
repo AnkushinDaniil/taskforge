@@ -58,6 +58,9 @@ begin
   begin
     FM := Map.Fields[i];
     if ExcludePk and FM.IsPrimaryKey then Continue;
+    // On INSERT, omit the version column so the SQL DEFAULT (1) applies
+    // — otherwise the Pascal record's zero value would be inserted.
+    if ExcludePk and SameText(FM.ColumnName, 'version') then Continue;
     if not First then Result := Result + ', ';
     Result := Result + FM.ColumnName;
     First := False;
@@ -76,6 +79,7 @@ begin
   begin
     FM := Map.Fields[i];
     if ExcludePk and FM.IsPrimaryKey then Continue;
+    if ExcludePk and SameText(FM.ColumnName, 'version') then Continue;
     if not First then Result := Result + ', ';
     Result := Result + ':' + FM.ColumnName;
     First := False;
