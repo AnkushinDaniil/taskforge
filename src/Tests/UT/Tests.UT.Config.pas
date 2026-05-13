@@ -6,6 +6,7 @@ uses
   DUnitX.TestFramework,
   System.SysUtils,
   System.IOUtils,
+  Winapi.Windows,
   TaskForge.Core.Config;
 
 type
