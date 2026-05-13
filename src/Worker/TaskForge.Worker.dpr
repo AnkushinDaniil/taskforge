@@ -9,6 +9,7 @@ uses
   System.SyncObjs,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteWrapper.Stat,
   FireDAC.Stan.Def,
   FireDAC.Stan.Async,
   FireDAC.DApt,
