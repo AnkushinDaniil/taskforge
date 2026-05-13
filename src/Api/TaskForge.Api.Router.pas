@@ -56,14 +56,16 @@ implementation
 
 constructor TRouteContext.Create;
 var
-  ReqHeaders: TStringList;
+  ReqHeaders, RespHeaders: TStringList;
 begin
   inherited;
   Params := TRouteParams.Create;
   ReqHeaders := TStringList.Create;
   ReqHeaders.NameValueSeparator := ':'; // match Indy's RawHeaders format
   RequestHeaders := ReqHeaders;
-  ResponseHeaders := TStringList.Create;
+  RespHeaders := TStringList.Create;
+  RespHeaders.NameValueSeparator := ':';
+  ResponseHeaders := RespHeaders;
   StatusCode := 200;
   ResponseContentType := 'application/json; charset=utf-8';
 end;

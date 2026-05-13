@@ -132,7 +132,7 @@ begin
   end;
   ETag := ComputeETag(R.Unwrap.Id, R.Unwrap.Version);
   IfNoneMatch := Ctx.RequestHeaders.Values['If-None-Match'];
-  Ctx.ResponseHeaders.Values['ETag'] := ETag;
+  Ctx.ResponseHeaders.Add('ETag: ' + ETag);
   if (IfNoneMatch <> '') and MatchesETag(IfNoneMatch, ETag) then
   begin
     Ctx.StatusCode := 304;
@@ -179,7 +179,7 @@ begin
   begin
     JOut := TJsonMapper.ToJson<TTask>(Created.Unwrap);
     try
-      Ctx.ResponseHeaders.Values['Location'] := '/tasks/' + IntToStr(Ins.Unwrap);
+      Ctx.ResponseHeaders.Add('Location: /tasks/' + IntToStr(Ins.Unwrap));
       WriteJson(Ctx, 201, JOut);
     finally
       JOut.Free;
