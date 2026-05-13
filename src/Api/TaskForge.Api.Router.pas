@@ -150,6 +150,18 @@ begin
   FRoutes.Add(E);
 end;
 
+function MakeRouteHandler(Inst: TObject; Method: TRttiMethod): TRouteHandler;
+begin
+  // Wrapper function so the anonymous method captures Method BY VALUE
+  // (via this function's parameter). Capturing the loop variable directly
+  // makes every handler invoke the *last* registered method.
+  Result :=
+    procedure(RC: TRouteContext)
+    begin
+      Method.Invoke(Inst, [TValue.From<TRouteContext>(RC)]);
+    end;
+end;
+
 procedure TRouter.RegisterController(Controller: TObject);
 var
   Ctx: TRttiContext;
@@ -157,28 +169,16 @@ var
   M: TRttiMethod;
   A: TCustomAttribute;
   RouteAttr: RouteAttribute;
-  Inst: TObject;
-  CapturedMethod: TRttiMethod;
-  H: TRouteHandler;
 begin
   Ctx := TRttiContext.Create;
   T := Ctx.GetType(Controller.ClassType);
-  Inst := Controller;
   for M in T.GetMethods do
-  begin
     for A in M.GetAttributes do
       if A is RouteAttribute then
       begin
         RouteAttr := RouteAttribute(A);
-        CapturedMethod := M;
-        H :=
-          procedure(RC: TRouteContext)
-          begin
-            CapturedMethod.Invoke(Inst, [TValue.From<TRouteContext>(RC)]);
-          end;
-        Add(RouteAttr.Method, RouteAttr.Path, H);
+        Add(RouteAttr.Method, RouteAttr.Path, MakeRouteHandler(Controller, M));
       end;
-  end;
 end;
 
 function TRouter.Dispatch(Ctx: TRouteContext): Boolean;

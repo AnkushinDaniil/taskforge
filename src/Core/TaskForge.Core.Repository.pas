@@ -113,17 +113,16 @@ var
   FM: TFieldMap;
   V: TValue;
   RecValue: TValue;
-  SkipVersion: Boolean;
 begin
-  // Updates use `version = version + 1` in the SET clause, so :version is
-  // not a parameter. Inserts include version as a regular column.
-  SkipVersion := not ExcludePk;
+  // The version column is never bound as a parameter:
+  //   INSERT excludes it from the column list -> SQL DEFAULT 1 applies.
+  //   UPDATE writes `version = version + 1` literally in the SET clause.
   RecValue := TValue.From<T>(Rec);
   for i := 0 to High(Map.Fields) do
   begin
     FM := Map.Fields[i];
     if ExcludePk and FM.IsPrimaryKey then Continue;
-    if SkipVersion and SameText(FM.ColumnName, 'version') then Continue;
+    if SameText(FM.ColumnName, 'version') then Continue;
     V := FM.Field.GetValue(RecValue.GetReferenceToRawData);
     Q.ParamByName(FM.ColumnName).Value := V.AsVariant;
   end;
